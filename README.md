@@ -18,6 +18,7 @@ This sample runs as a hosted background service that:
 - **Tool calling** — the agent can call a `GetWeather` function as part of its response
 - **Session state bag** for passing arbitrary metadata (user name, channel, company ID) alongside the conversation
 - **`AdditionalProperties`** on individual messages for per-message metadata such as the originating channel
+- **Session serialization** — the session can be serialized to JSON via `SerializeSessionAsync` for persistence or hand-off
 
 ## Prerequisites
 
@@ -58,7 +59,8 @@ On startup the application will:
 1. Create (if not already present) a Cosmos DB database named `ChatHistoryDb` with a container named `SessionsContainer` (partition key: `/conversationId`).
 2. Start a two-turn conversation with the agent.
 3. Log the agent's responses and session metadata to the console.
-4. Exit automatically after the conversation completes.
+4. Serialize the session state to JSON and print it to the console.
+5. Exit automatically after the conversation completes.
 
 ## Project Structure
 
@@ -73,6 +75,6 @@ On startup the application will:
 | Package | Version |
 |---|---|
 | `Azure.AI.OpenAI` | 2.8.0-beta.1 |
-| `Microsoft.Agents.AI.CosmosNoSql` | 1.0.0-preview |
+| `Microsoft.Agents.AI.CosmosNoSql` | 1.0.0-preview.260304.1 |
 | `Microsoft.Agents.AI.OpenAI` | 1.0.0-rc3 |
 | `Microsoft.Extensions.Hosting` | 9.0.0 |
