@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
 using System.ComponentModel;
+using System.Text.Json;
 
 public class Worker : BackgroundService
 {
@@ -35,12 +36,13 @@ public class Worker : BackgroundService
             const string databaseId = "ChatHistoryDb";
             const string containerId = "SessionsContainer";
 
-            var sessionId = Guid.NewGuid().ToString();
+            var conversationId = Guid.NewGuid().ToString();
+
             ChatHistoryProvider memory2 = new CosmosChatHistoryProvider(
                 _cosmosClient,
                 databaseId,
                 containerId,
-                _ => new CosmosChatHistoryProvider.State(sessionId));
+                _ => new CosmosChatHistoryProvider.State(conversationId));
 
             var agent = new AzureOpenAIClient(
                 new Uri(endpoint),
@@ -58,8 +60,8 @@ public class Worker : BackgroundService
                     },
                     ChatHistoryProvider = memory2
                 });
-
-            AgentSession session = await agent.CreateSessionAsync();
+                
+            var session = await agent.CreateSessionAsync(cancellationToken: stoppingToken);
             session.StateBag.SetValue("userName", "Alice");
             session.StateBag.SetValue("channelInitiator", "email");
             session.StateBag.SetValue("companyId", "1234");
@@ -71,14 +73,14 @@ public class Worker : BackgroundService
             {
                 AdditionalProperties = new AdditionalPropertiesDictionary { { channelKey, "email" } }
             };
-            _logger.LogInformation("{Response}", await agent.RunAsync(message1, session));
+            _logger.LogInformation("{Response}", await agent.RunAsync(message1, session, cancellationToken: stoppingToken));
 
             // Second turn — the agent remembers the user's name and hobby
             var message2 = new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, "What do you remember about me?")
             {
                 AdditionalProperties = new AdditionalPropertiesDictionary { { channelKey, "web" } }
             };
-            _logger.LogInformation("{Response}", await agent.RunAsync(message2, session));
+            _logger.LogInformation("{Response}", await agent.RunAsync(message2, session, cancellationToken: stoppingToken));
 
             var userName = session.StateBag.GetValue<string>("userName");
             var channelInitiator = session.StateBag.GetValue<string>("channelInitiator");
@@ -93,6 +95,15 @@ public class Worker : BackgroundService
             //     var text = message.Contents.OfType<TextContent>().FirstOrDefault()?.Text;
             //     _logger.LogInformation("{Role}: {Text} (channel: {Channel})", message.Role, text, channel);
             // }
+            
+            // Serialize the session state to a JsonElement, so it can be stored for later use.
+            JsonElement serializedSession = await agent.SerializeSessionAsync(session);
+
+            // In a real application, you would typically write the serialized session to a file or
+            // database for persistence, and read it back when resuming the conversation.
+            // Here we'll just write the serialized session to console (for demonstration purposes).
+            Console.WriteLine("\n--- Serialized session ---\n");
+            Console.WriteLine(JsonSerializer.Serialize(serializedSession, new JsonSerializerOptions { WriteIndented = true }) + "\n");
         }
         catch (Exception ex)
         {
