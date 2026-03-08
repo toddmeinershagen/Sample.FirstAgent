@@ -16,12 +16,10 @@ builder.Services.AddSingleton(_ => {
     var client = new CosmosClient(
     accountEndpoint: endpoint,
     authKeyOrResourceToken: apiKey);
-    
-    const string databaseId = "ChatHistoryDb";
-    const string containerId = "SessionsContainer";
 
-    var databaseResponse = client.CreateDatabaseIfNotExistsAsync(databaseId).GetAwaiter().GetResult();
-    databaseResponse.Database.CreateContainerIfNotExistsAsync(containerId, "/conversationId").Wait();
+
+    var databaseResponse = client.CreateDatabaseIfNotExistsAsync(Worker.DatabaseId).GetAwaiter().GetResult();
+    databaseResponse.Database.CreateContainerIfNotExistsAsync(Worker.ContainerId, "/conversationId").Wait();
 
     return client;
 });

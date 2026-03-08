@@ -14,6 +14,9 @@ public class Worker : BackgroundService
     private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<Worker> _logger;
 
+    public const string DatabaseId = "ChatHistoryDb";
+    public const string ContainerId = "SessionsContainer";
+
     public Worker(CosmosClient cosmosClient, IHostApplicationLifetime lifetime, ILogger<Worker> logger)
     {
         _cosmosClient = cosmosClient;
@@ -33,15 +36,12 @@ public class Worker : BackgroundService
 
             // var memory1 = new InMemoryChatHistoryProvider();
 
-            const string databaseId = "ChatHistoryDb";
-            const string containerId = "SessionsContainer";
-
             var conversationId = Guid.NewGuid().ToString();
 
             ChatHistoryProvider memory2 = new CosmosChatHistoryProvider(
                 _cosmosClient,
-                databaseId,
-                containerId,
+                DatabaseId,
+                ContainerId,
                 _ => new CosmosChatHistoryProvider.State(conversationId));
 
             var agent = new AzureOpenAIClient(
